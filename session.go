@@ -6,18 +6,18 @@ package srtp
 import (
 	"errors"
 	"io"
-	"net"
 	"sync"
 	"time"
 
 	"github.com/pion/logging"
+	"github.com/pion/transport/v3"
 	"github.com/pion/transport/v3/packetio"
 )
 
 type streamSession interface {
 	Close() error
 	write([]byte) (int, error)
-	decrypt([]byte) error
+	decrypt([]byte, *uint16) error
 }
 
 type session struct {
@@ -36,9 +36,9 @@ type session struct {
 	readStreamsLock   sync.Mutex
 
 	log           logging.LeveledLogger
-	bufferFactory func(packetType packetio.BufferPacketType, ssrc uint32) io.ReadWriteCloser
+	bufferFactory func(packetType packetio.BufferPacketType, ssrc uint32) packetio.ReadWriteCloserWithAncillary
 
-	nextConn net.Conn
+	nextConn transport.ConnWithAncillary
 }
 
 // Config is used to configure a session.
@@ -48,7 +48,7 @@ type session struct {
 type Config struct {
 	Keys                SessionKeys
 	Profile             ProtectionProfile
-	BufferFactory       func(packetType packetio.BufferPacketType, ssrc uint32) io.ReadWriteCloser
+	BufferFactory       func(packetType packetio.BufferPacketType, ssrc uint32) packetio.ReadWriteCloserWithAncillary
 	LoggerFactory       logging.LoggerFactory
 	AcceptStreamTimeout time.Time
 
@@ -139,9 +139,10 @@ func (s *session) start(localMasterKey, localMasterSalt, remoteMasterKey, remote
 		}()
 
 		b := make([]byte, 8192)
+		var a uint16
 		for {
 			var i int
-			i, err = s.nextConn.Read(b)
+			i, err = s.nextConn.ReadWithAncillary(b, &a)
 			if err != nil {
 				if !errors.Is(err, io.EOF) {
 					s.log.Error(err.Error())
@@ -149,7 +150,7 @@ func (s *session) start(localMasterKey, localMasterSalt, remoteMasterKey, remote
 				return
 			}
 
-			if err = child.decrypt(b[:i]); err != nil {
+			if err = child.decrypt(b[:i], &a); err != nil {
 				s.log.Info(err.Error())
 			}
 		}

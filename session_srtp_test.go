@@ -25,6 +25,14 @@ func TestSessionSRTPBadInit(t *testing.T) {
 	}
 }
 
+type DummyConnectionWithAncillary struct {
+	net.Conn
+}
+
+func (c DummyConnectionWithAncillary) ReadWithAncillary(p []byte, a *uint16) (int, error) {
+	return 0, nil
+}
+
 func buildSessionSRTP(t *testing.T) (*SessionSRTP, net.Conn, *Config) {
 	aPipe, bPipe := net.Pipe()
 	config := &Config{
@@ -37,7 +45,7 @@ func buildSessionSRTP(t *testing.T) (*SessionSRTP, net.Conn, *Config) {
 		},
 	}
 
-	aSession, err := NewSessionSRTP(aPipe, config)
+	aSession, err := NewSessionSRTP(DummyConnectionWithAncillary{aPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if aSession == nil {
@@ -49,7 +57,7 @@ func buildSessionSRTP(t *testing.T) (*SessionSRTP, net.Conn, *Config) {
 
 func buildSessionSRTPPair(t *testing.T) (*SessionSRTP, *SessionSRTP) { //nolint:dupl
 	aSession, bPipe, config := buildSessionSRTP(t)
-	bSession, err := NewSessionSRTP(bPipe, config)
+	bSession, err := NewSessionSRTP(DummyConnectionWithAncillary{bPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if bSession == nil {
@@ -137,7 +145,7 @@ func TestSessionSRTPWithIODeadline(t *testing.T) {
 	}
 
 	// Setup another peer.
-	bSession, err := NewSessionSRTP(bPipe, config)
+	bSession, err := NewSessionSRTP(DummyConnectionWithAncillary{bPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if bSession == nil {
@@ -378,7 +386,7 @@ func TestSessionSRTPAcceptStreamTimeout(t *testing.T) {
 		AcceptStreamTimeout: time.Now().Add(3 * time.Second),
 	}
 
-	newSession, err := NewSessionSRTP(pipe, config)
+	newSession, err := NewSessionSRTP(DummyConnectionWithAncillary{pipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if newSession == nil {

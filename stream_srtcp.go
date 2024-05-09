@@ -5,7 +5,6 @@ package srtp
 
 import (
 	"errors"
-	"io"
 	"sync"
 	"time"
 
@@ -26,11 +25,11 @@ type ReadStreamSRTCP struct {
 	ssrc     uint32
 	isInited bool
 
-	buffer io.ReadWriteCloser
+	buffer packetio.ReadWriteCloserWithAncillary
 }
 
-func (r *ReadStreamSRTCP) write(buf []byte) (n int, err error) {
-	n, err = r.buffer.Write(buf)
+func (r *ReadStreamSRTCP) writeWithAncillary(buf []byte, a *uint16) (n int, err error) {
+	n, err = r.buffer.WriteWithAncillary(buf, a)
 
 	if errors.Is(err, packetio.ErrFull) {
 		// Silently drop data when the buffer is full.
@@ -61,9 +60,13 @@ func (r *ReadStreamSRTCP) ReadRTCP(buf []byte) (int, *rtcp.Header, error) {
 	return n, header, nil
 }
 
+func (r *ReadStreamSRTCP) ReadWithAncillary(buf []byte, a *uint16) (int, error) {
+	return r.buffer.ReadWithAncillary(buf, a)
+}
+
 // Read reads and decrypts full RTCP packet from the nextConn
 func (r *ReadStreamSRTCP) Read(buf []byte) (int, error) {
-	return r.buffer.Read(buf)
+	return r.ReadWithAncillary(buf, nil)
 }
 
 // SetReadDeadline sets the deadline for the Read operation.

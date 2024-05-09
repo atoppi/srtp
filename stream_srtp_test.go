@@ -31,11 +31,11 @@ func TestBufferFactory(t *testing.T) {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	conn := newNoopConn()
-	bf := func(_ packetio.BufferPacketType, _ uint32) io.ReadWriteCloser {
+	bf := func(_ packetio.BufferPacketType, _ uint32) packetio.ReadWriteCloserWithAncillary {
 		wg.Done()
 		return packetio.NewBuffer()
 	}
-	rtpSession, err := NewSessionSRTP(conn, &Config{
+	rtpSession, err := NewSessionSRTP(DummyConnectionWithAncillary{conn}, &Config{
 		Keys: SessionKeys{
 			LocalMasterKey:   make([]byte, 16),
 			LocalMasterSalt:  make([]byte, 14),
@@ -46,7 +46,7 @@ func TestBufferFactory(t *testing.T) {
 		Profile:       ProtectionProfileAes128CmHmacSha1_80,
 	})
 	assert.NoError(t, err)
-	rtcpSession, err := NewSessionSRTCP(conn, &Config{
+	rtcpSession, err := NewSessionSRTCP(DummyConnectionWithAncillary{conn}, &Config{
 		Keys: SessionKeys{
 			LocalMasterKey:   make([]byte, 16),
 			LocalMasterSalt:  make([]byte, 14),
@@ -86,7 +86,7 @@ func benchmarkWrite(b *testing.B, profile ProtectionProfile, size int) {
 		Profile: profile,
 	}
 
-	session, err := NewSessionSRTP(conn, config)
+	session, err := NewSessionSRTP(DummyConnectionWithAncillary{conn}, config)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -166,7 +166,7 @@ func benchmarkWriteRTP(b *testing.B, profile ProtectionProfile, size int) {
 		Profile: profile,
 	}
 
-	session, err := NewSessionSRTP(conn, config)
+	session, err := NewSessionSRTP(DummyConnectionWithAncillary{conn}, config)
 	if err != nil {
 		b.Fatal(err)
 	}

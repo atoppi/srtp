@@ -4,11 +4,11 @@
 package srtp
 
 import (
-	"net"
 	"time"
 
 	"github.com/pion/logging"
 	"github.com/pion/rtcp"
+	"github.com/pion/transport/v3"
 )
 
 const defaultSessionSRTCPReplayProtectionWindow = 64
@@ -23,7 +23,7 @@ type SessionSRTCP struct {
 }
 
 // NewSessionSRTCP creates a SRTCP session using conn as the underlying transport.
-func NewSessionSRTCP(conn net.Conn, config *Config) (*SessionSRTCP, error) { //nolint:dupl
+func NewSessionSRTCP(conn transport.ConnWithAncillary, config *Config) (*SessionSRTCP, error) { //nolint:dupl
 	if config == nil {
 		return nil, errNoConfig
 	} else if conn == nil {
@@ -153,7 +153,7 @@ func destinationSSRC(pkts []rtcp.Packet) []uint32 {
 	return out
 }
 
-func (s *SessionSRTCP) decrypt(buf []byte) error {
+func (s *SessionSRTCP) decrypt(buf []byte, ancillary *uint16) error {
 	decrypted, err := s.remoteContext.DecryptRTCP(buf, buf, nil)
 	if err != nil {
 		return err
@@ -180,7 +180,7 @@ func (s *SessionSRTCP) decrypt(buf []byte) error {
 			return errFailedTypeAssertion
 		}
 
-		_, err = readStream.write(decrypted)
+		_, err = readStream.writeWithAncillary(decrypted, ancillary)
 		if err != nil {
 			return err
 		}

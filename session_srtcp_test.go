@@ -40,7 +40,7 @@ func buildSessionSRTCP(t *testing.T) (*SessionSRTCP, net.Conn, *Config) {
 		},
 	}
 
-	aSession, err := NewSessionSRTCP(aPipe, config)
+	aSession, err := NewSessionSRTCP(DummyConnectionWithAncillary{aPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if aSession == nil {
@@ -52,7 +52,7 @@ func buildSessionSRTCP(t *testing.T) (*SessionSRTCP, net.Conn, *Config) {
 
 func buildSessionSRTCPPair(t *testing.T) (*SessionSRTCP, *SessionSRTCP) { //nolint:dupl
 	aSession, bPipe, config := buildSessionSRTCP(t)
-	bSession, err := NewSessionSRTCP(bPipe, config)
+	bSession, err := NewSessionSRTCP(DummyConnectionWithAncillary{bPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if bSession == nil {
@@ -137,7 +137,7 @@ func TestSessionSRTCPWithIODeadline(t *testing.T) {
 	}
 
 	// Setup another peer.
-	bSession, err := NewSessionSRTCP(bPipe, config)
+	bSession, err := NewSessionSRTCP(DummyConnectionWithAncillary{bPipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if bSession == nil {
@@ -324,7 +324,7 @@ func TestSessionSRTCPAcceptStreamTimeout(t *testing.T) {
 		AcceptStreamTimeout: time.Now().Add(3 * time.Second),
 	}
 
-	newSession, err := NewSessionSRTCP(pipe, config)
+	newSession, err := NewSessionSRTCP(DummyConnectionWithAncillary{pipe}, config)
 	if err != nil {
 		t.Fatal(err)
 	} else if newSession == nil {
